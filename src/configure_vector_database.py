@@ -1,6 +1,6 @@
 import streamlit as st
+import tarfile
 import shutil
-import py7zr
 import gdown
 import time
 import os
@@ -40,17 +40,10 @@ options = [
     "Vector database number 3",
     "Vector database number 4",
     "Vector database number 5",
-    "Vector database number 6",
-    "Vector database number 7",
-    "Vector database number 8",
-    "Vector database number 9",
-    "Vector database number 10",
-    "Vector database number 11",
-    "Vector database number 12",
-    "Vector database number 13",
-    "Vector database number 14",
-    "Vector database number 15",
 ]
+
+if "CHROMADB_PART" not in st.session_state:
+    st.session_state["CHROMADB_PART"] = None
 
 index = (
     None
@@ -66,16 +59,16 @@ st.session_state["CHROMADB_PART"] = st.selectbox(
 if st.button("START!", use_container_width=True):
     chromadb_part_number = options.index(st.session_state["CHROMADB_PART"]) + 1
     url = st.secrets[f"CHROMA_DB_PART{chromadb_part_number}_LINK"]
-    destination = "chroma_db.7z"
+    destination = "chroma_db.tar.gz"
     with st.spinner("Downloading the database..."):
         gdown.download(url, destination, quiet=True)
     with st.spinner("Extracting the database..."):
-        with py7zr.SevenZipFile("chroma_db.7z", mode="r") as z:
-            z.extractall()
+        with tarfile.open(destination, "r:gz") as tar:
+            tar.extractall()
 
     if os.path.exists("chroma_db"):
         shutil.rmtree("chroma_db")
     os.rename(f"chroma_db_part{chromadb_part_number}", "chroma_db")
-    os.remove("chroma_db.7z")
+    os.remove(destination)
 
     st.switch_page("src/poetize.py")

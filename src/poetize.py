@@ -4,9 +4,9 @@ import sys
 
 sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 
-import streamlit as st
 from chromadb import PersistentClient
 from openai import OpenAI
+import streamlit as st
 import time
 import os
 
@@ -72,14 +72,14 @@ def generate_response(prompt, temperature):
 
 st.title("Let's poetize your thoughts!")
 
-if "OPENAI_API_KEY" not in st.session_state:
-    st.session_state["OPENAI_API_KEY"] = None
-if "CHROMADB_PART" not in st.session_state:
-    st.session_state["CHROMADB_PART"] = None
-
-if st.session_state["OPENAI_API_KEY"] is None:
+if (
+    "OPENAI_API_KEY" not in st.session_state
+    or st.session_state["OPENAI_API_KEY"] is None
+):
     st.switch_page("src/configure_openai_api_key.py")
-elif st.session_state["CHROMADB_PART"] is None:
+elif (
+    "CHROMADB_PART" not in st.session_state or st.session_state["CHROMADB_PART"] is None
+):
     st.switch_page("src/configure_vector_database.py")
 
 with st.form("phrase_form"):
@@ -93,13 +93,20 @@ with st.form("phrase_form"):
     )
 
     if st.form_submit_button("Submit", use_container_width=True):
+        if text == "":
+            st.warning("Please enter a phrase to continue!", icon="⚠")
+            st.stop()
+
         client = get_openai_client()
         embeddings = client.embeddings.create(input=text, model=EMBEDDING_MODEL_NAME)
 
         collection = get_chromadb_collection()
         query_results = collection.query(
-            query_embeddings=embeddings.data[0].embedding, n_results=5
+            query_embeddings=embeddings.data[0].embedding,
+            n_results=5,
+            include=["metadatas", "documents", "distances"],
         )
+
         similar_documents = {}
         for i, id in enumerate(query_results["ids"][0]):
             similar_documents[id] = {

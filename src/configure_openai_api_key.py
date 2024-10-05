@@ -11,6 +11,8 @@ def stream_data(text):
 
 
 def validate_api_key(api_key):
+    if api_key == "":
+        return False
     try:
         openai.api_key = api_key
         client = openai.OpenAI(api_key=api_key)
@@ -36,6 +38,9 @@ if not st.session_state["first_welcome_text_stream_executed"]:
 else:
     st.write(first_welcome_text)
 
+if "OPENAI_API_KEY" not in st.session_state:
+    st.session_state["OPENAI_API_KEY"] = None
+
 openai_api_key = st.text_input(
     "OpenAI API Key",
     type="password",
@@ -48,7 +53,7 @@ if st.button(
     if hashlib.sha512(openai_api_key.encode()).hexdigest() == st.secrets["PASSWORD"]:
         openai_api_key = st.secrets["OPENAI_API_KEY"]
 
-    if openai_api_key != "" and not validate_api_key(openai_api_key):
+    if not validate_api_key(openai_api_key):
         st.warning("Please enter your valid OpenAI API key!", icon="⚠")
     else:
         st.session_state["OPENAI_API_KEY"] = openai_api_key
